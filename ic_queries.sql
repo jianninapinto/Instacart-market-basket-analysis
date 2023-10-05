@@ -2,7 +2,6 @@
 Use SQL queries to derive insights from the data set. */
 
 -- 1. Data Exploration and Understanding
-
 -- Tables Data Structure
 SELECT *
 FROM ic_order_products_curr
@@ -80,4 +79,83 @@ FROM ic_order_products_curr;
 |---------|
 | 1384617 |
 
+-- 2. Data Quality Check
+-- Check for missing values in ic_order_products_curr table
+SELECT 
+    COUNT(*) AS total_rows,
+    COUNT(order_id) AS non_null_order_id,
+    COUNT(product_id) AS non_null_product_id,
+    COUNT(add_to_cart_order) AS non_null_add_to_cart_order,
+    COUNT(reordered) AS non_null_reordered
+FROM ic_order_products_curr;
+
+| "total_rows" | "non_null_order_id" | "non_null_product_id" | "non_null_add_to_cart_order" | "non_null_reordered" |
+|--------------|---------------------|-----------------------|------------------------------|----------------------|
+| 1384617      | 1384617             | 1384617               | 1384617                      | 1384617              |
+
+
+-- Check for missing values in ic_order_products_prior table
+SELECT 
+    COUNT(*) AS total_rows,
+    COUNT(order_id) AS non_null_order_id,
+    COUNT(product_id) AS non_null_product_id,
+    COUNT(add_to_cart_order) AS non_null_add_to_cart_order,
+    COUNT(reordered) AS non_null_reordered
+FROM ic_order_products_prior;
+
+| "total_rows" | "non_null_order_id" | "non_null_product_id" | "non_null_add_to_cart_order" | "non_null_reordered" |
+|--------------|---------------------|-----------------------|------------------------------|----------------------|
+| 32434489     | 32434489            | 32434489              | 32434489                     | 32434489             |
+
+-- Check for missing values in ic_products table
+SELECT 
+    COUNT(*) AS total_rows,
+    COUNT(product_id) AS non_null_product_id,
+    COUNT(product_name) AS non_null_product_name,
+    COUNT(aisle_id) AS non_null_aisle_id,
+    COUNT(department_id) AS non_null_department_id
+FROM ic_products;
+
+| "total_rows" | "non_null_product_id" | "non_null_product_name" | "non_null_aisle_id" | "non_null_department_id" |
+|--------------|-----------------------|-------------------------|---------------------|--------------------------|
+| 49688        | 49688                 | 49688                   | 49688               | 49688                    |
+
+-- Check for missing values in ic_departments table
+SELECT 
+    COUNT(*) AS total_rows,
+    COUNT(department_id) AS non_null_department_id,
+    COUNT(department) AS non_null_department
+FROM ic_departments;
+
+| "total_rows" | "non_null_department_id" | "non_null_department" |
+|--------------|--------------------------|-----------------------|
+| 21           | 21                       | 21                    |
+
+
+-- Check for missing values in ic_aisles table
+SELECT 
+    COUNT(*) AS total_rows,
+    COUNT(aisle_id) AS non_null_aisle_id,
+    COUNT(aisle) AS non_null_aisle
+FROM ic_aisles;
+
+| "total_rows" | "non_null_aisle_id" | "non_null_aisle"                   |
+|--------------|---------------------|------------------------------------|
+| 134          | 134                 | 134                                |
+
+-- Total number of unique products ordered in the current quarter (Q3)
+SELECT COUNT (DISTINCT product_id)
+FROM ic_order_products_curr;
+
+| "count" |
+|---------|
+| 39123   |
+
+-- Total number of unique products ordered in the previous quarter (Q2)
+SELECT COUNT (DISTINCT product_id)
+FROM ic_order_products_prior;
+
+| "count" |
+|---------|
+| 49677   |
 
