@@ -178,7 +178,7 @@ SELECT
 FROM ic_order_products_curr
 LIMIT 5;
 
--- Data Analysis
+-- 3. Data Analysis
 
 -- Create a view of the sampled data for the ic_order_products_prior
 CREATE VIEW sampled_order_products_prior_view AS
@@ -298,4 +298,59 @@ LIMIT 10;
 | 16797        | "Strawberries"           | 142951            |
 | 26209        | "Limes"                  | 140627            |
 | 27845        | "Organic Whole Milk"     | 137905            |
+
+
+-- Products reordered less than 10 times in Q2 that have been reordered more than 10 or more times in Q3
+
+SELECT
+      products.product_id,
+      products.product_name,
+      products.aisle_id,
+      products.department_id,
+      departments.department,
+      aisles.aisle,
+      SUM(CASE WHEN prior_orders.reordered::int = 1 THEN 1 ELSE 0 END) AS prior_reorders,
+      SUM(CASE WHEN curr_orders.reordered::int = 1 THEN 1 ELSE 0 END) AS curr_reorders
+  FROM
+      ic_products AS products
+  JOIN
+      sampled_order_products_prior_view AS prior_orders
+      ON products.product_id = prior_orders.product_id
+  JOIN
+      sampled_order_products_curr_view AS curr_orders
+      ON products.product_id = curr_orders.product_id
+  JOIN
+      ic_departments AS departments
+      ON products.department_id = departments.department_id
+  JOIN
+      ic_aisles AS aisles
+      ON products.aisle_id = aisles.aisle_id
+  GROUP BY
+      products.product_id,
+      products.product_name,
+      products.aisle_id,
+      products.department_id,
+      departments.department,
+      aisles.aisle
+  HAVING
+      SUM(CASE WHEN prior_orders.reordered::int = 1 THEN 1 ELSE 0 END) < 10
+      AND SUM(CASE WHEN curr_orders.reordered::int = 1 THEN 1 ELSE 0 END) >= 10
+  ORDER BY
+      curr_reorders DESC;
+
+
+| product_id | product_name                               | aisle_id | department_id | department  | aisle                           | prior_reorders  | curr_reorders |
+|------------|--------------------------------------------|----------|---------------|-------------|---------------------------------|----------------|---------------|
+| 16462      | Ready-to-Bake 9 Inch Pie Crusts            | 105      | 13            | pantry      | doughs gelatins bake mixes      | 8              | 38            |
+| 44303      | Organic Shredded Unsweetened Coconut       | 17       | 13            | pantry      | baking ingredients              | 6              | 35            |
+| 8006       | Chopped Organic Garlic                     | 110      | 13            | pantry      | pickled goods olives            | 4              | 34            |
+| 45002      | Organic Balsamic Vinegar Of Modena         | 19       | 13            | pantry      | oils vinegars                   | 9              | 32            |
+| 35269      | Vegetable Tray With Low Fat Dressing       | 32       | 4             | produce     | packaged produce                | 6              | 30            |
+| 19767      | Old Fashioned Oatmeal                      | 130      | 14            | breakfast   | hot cereal pancake mixes        | 6              | 30            |
+| 43920      | Organic Powdered Sugar                     | 17       | 13            | pantry      | baking ingredients              | 3              | 27            |
+| 17679      | San Marzano Peeled Tomatoes                | 81       | 15            | canned goods| canned jarred vegetables        | 8              | 26            |
+| 9871       | Beef Loin New York Strip Steak             | 122      | 12            | meat seafood| meat counter                    | 8              | 26            |
+| 25861      | Freshly Shaved Parmesan Cheese             | 21       | 16            | dairy eggs | packaged cheese                  | 6              | 26            |
+...
+| Total: 289 rows                                   |
 
