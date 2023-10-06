@@ -159,3 +159,143 @@ FROM ic_order_products_prior;
 |---------|
 | 49677   |
 
+-- Using CASE statement to convert 'reordered' into numerical values
+SELECT
+    order_id,
+    product_id,
+    add_to_cart_order,
+    CASE WHEN reordered = 'true' THEN 1 ELSE 0 END AS reordered_numeric
+FROM ic_order_products_curr
+LIMIT 5;
+
+
+-- Using CAST to convert 'reordered' into numerical values
+SELECT
+    order_id,
+    product_id,
+    add_to_cart_order,
+    (reordered::boolean)::integer AS reordered_numeric
+FROM ic_order_products_curr
+LIMIT 5;
+
+-- Data Analysis
+
+-- Create a view of the sampled data for the ic_order_products_prior
+CREATE VIEW sampled_order_products_prior_view AS
+SELECT * FROM ic_order_products_prior TABLESAMPLE SYSTEM (0.80);
+
+-- Create a view of the sampled data for the ic_order_products_curr
+CREATE VIEW sampled_order_products_curr_view AS
+SELECT * FROM ic_order_products_curr TABLESAMPLE SYSTEM (0.80);
+
+
+-- Average number of products per order in the current quarter (Q3)
+
+-- CTE to calculate the number of products per order from sampled data
+WITH order_product_counts_curr_cte AS (
+	SELECT
+		order_id, 
+		COUNT(product_id) AS products_per_order
+	FROM sampled_order_products_prior_view
+	GROUP BY order_id
+)
+
+SELECT 
+	ROUND(AVG(products_per_order), 0) AS avg_products_per_order
+FROM order_product_counts_curr_cte;
+
+| "avg_products_per_order" |
+|--------------------------|
+| 10                       |
+
+
+-- Average number of products per order in previous quarter (Q2)
+
+-- CTE to calculate the number of products per order from sampled data
+WITH order_product_counts_prior_cte AS (
+	SELECT
+		order_id, 
+		COUNT(product_id) AS products_per_order
+	FROM sampled_order_products_prior_view
+	GROUP BY order_id
+)
+
+SELECT 
+	ROUND(AVG(products_per_order), 0) AS avg_products_per_order
+FROM order_product_counts_prior_cte;
+
+| "avg_products_per_order" |
+|--------------------------|
+| 10                       |
+
+
+-- The 10 most reordered products for the current quarter (Q3)
+
+WITH order_product_counts_curr_cte AS (
+    SELECT
+        order_id,
+        COUNT(product_id) AS products_per_order
+    FROM sampled_order_products_curr_view
+    GROUP BY order_id
+)
+
+SELECT
+    products.product_id,
+    products.product_name,
+    COUNT(current_order.reordered) AS total_reordered
+FROM ic_order_products_curr AS current_order
+INNER JOIN ic_products AS products
+	ON current_order.product_id = products.product_id
+GROUP BY products.product_id, products.product_name
+ORDER BY total_reordered DESC
+LIMIT 10;
+
+| "product_id" | "product_name"           | "total_reordered" |
+|--------------|--------------------------|-------------------|
+| 24852        | "Banana"                 | 18726             |
+| 13176        | "Bag of Organic Bananas" | 15480             |
+| 21137        | "Organic Strawberries"   | 10894             |
+| 21903        | "Organic Baby Spinach"   | 9784              |
+| 47626        | "Large Lemon"            | 8135              |
+| 47766        | "Organic Avocado"        | 7409              |
+| 47209        | "Organic Hass Avocado"   | 7293              |
+| 16797        | "Strawberries"           | 6494              |
+| 26209        | "Limes"                  | 6033              |
+| 27966        | "Organic Raspberries"    | 5546              |
+
+
+
+-- The 10 most reordered products for the previous quarter (Q2)
+
+WITH order_product_counts_prior_cte AS (
+    SELECT
+        order_id,
+        COUNT(product_id) AS products_per_order
+    FROM sampled_order_products_prior_view
+    GROUP BY order_id
+)
+
+SELECT
+    products.product_id,
+    products.product_name,
+    COUNT(prior_order.reordered) AS total_reordered
+FROM ic_order_products_prior AS prior_order
+INNER JOIN ic_products AS products
+	ON prior_order.product_id = products.product_id
+GROUP BY products.product_id, products.product_name
+ORDER BY total_reordered DESC
+LIMIT 10;
+
+| "product_id" | "product_name"           | "total_reordered" |
+|--------------|--------------------------|-------------------|
+| 24852        | "Banana"                 | 472565            |
+| 13176        | "Bag of Organic Bananas" | 379450            |
+| 21137        | "Organic Strawberries"   | 264683            |
+| 21903        | "Organic Baby Spinach"   | 241921            |
+| 47209        | "Organic Hass Avocado"   | 213584            |
+| 47766        | "Organic Avocado"        | 176815            |
+| 47626        | "Large Lemon"            | 152657            |
+| 16797        | "Strawberries"           | 142951            |
+| 26209        | "Limes"                  | 140627            |
+| 27845        | "Organic Whole Milk"     | 137905            |
+
