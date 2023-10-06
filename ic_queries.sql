@@ -352,5 +352,127 @@ SELECT
 | 9871       | Beef Loin New York Strip Steak             | 122      | 12            | meat seafood| meat counter                    | 8              | 26            |
 | 25861      | Freshly Shaved Parmesan Cheese             | 21       | 16            | dairy eggs | packaged cheese                  | 6              | 26            |
 ...
-| Total: 289 rows                                   |
+| Total: 289 rows                                                                                                                                                     |
 
+
+-- Departments with highest increase in reordered products
+
+WITH increased_reorders AS (
+	SELECT
+		products.product_id,
+		products.product_name,
+		products.aisle_id,
+		products.department_id,
+		department.department,
+		aisles.aisle,
+		-- Total number of times each product has been reordered in the previous quarter (Q2)
+		SUM(CASE WHEN prior_orders.reordered THEN 1 ELSE 0 END) AS prior_reorders,
+		-- Total number of times each product has been reordered in the current quarter (Q3)
+		SUM(CASE WHEN curr_orders.reordered THEN 1 ELSE 0 END) AS current_reorders
+	FROM ic_products AS products
+	JOIN sampled_order_products_prior AS prior_orders -- Get prior order data (Q2)
+		ON products.product_id = prior_orders.product_id
+	JOIN ic_order_products_curr AS curr_orders -- Get current order data (Q3)
+		ON products.product_id = curr_orders.product_id
+	JOIN ic_departments AS department
+		ON products.department_id = department.department_id
+	JOIN ic_aisles AS aisles
+		ON products.aisle_id = aisles.aisle_id
+	GROUP BY
+		products.product_id,
+		products.product_name,
+		products.aisle_id,
+		products.department_id,
+		department.department,
+		aisles.aisle
+	HAVING
+		SUM(CASE WHEN prior_orders.reordered THEN 1 ELSE 0 END) < 10 -- Filter on products previously reordered less than 10 times 
+		AND SUM(CASE WHEN curr_orders.reordered THEN 1 ELSE 0 END) >= 10 -- Filter on products currently reordered more than 10 times 
+	ORDER BY
+		current_reorders DESC
+)
+
+SELECT department,
+COUNT(*) AS num_products
+FROM increased_reorders
+GROUP BY department
+ORDER BY num_products DESC;
+
+| "department"                                         | "num_products" |
+|------------------------------------------------------|----------------|
+| "dairy eggs                                        " | 35             |
+| "pantry                                            " | 34             |
+| "snacks                                            " | 34             |
+| "frozen                                            " | 26             |
+| "produce                                           " | 24             |
+| "beverages                                         " | 24             |
+| "household                                         " | 21             |
+| "canned goods                                      " | 17             |
+| "dry goods pasta                                   " | 16             |
+| "bakery                                            " | 15             |
+| "breakfast                                         " | 10             |
+| "babies                                            " | 8              |
+| "meat seafood                                      " | 7              |
+| "deli                                              " | 6              |
+| "missing                                           " | 4              |
+| "alcohol                                           " | 3              |
+| "personal care                                     " | 2              |
+| "international                                     " | 2              |
+
+
+-- Aisles with highest increased in reordered products
+
+WITH increased_reorders AS (
+	SELECT
+		products.product_id,
+		products.product_name,
+		products.aisle_id,
+		products.department_id,
+		department.department,
+		aisles.aisle,
+		-- Total number of times each product has been reordered in the previous quarter (Q2)
+		SUM(CASE WHEN prior_orders.reordered THEN 1 ELSE 0 END) AS prior_reorders,
+		-- Total number of times each product has been reordered in the current quarter (Q3)
+		SUM(CASE WHEN curr_orders.reordered THEN 1 ELSE 0 END) AS current_reorders
+	FROM ic_products AS products
+	JOIN sampled_order_products_prior AS prior_orders -- Get prior order data (Q2)
+		ON products.product_id = prior_orders.product_id
+	JOIN ic_order_products_curr AS curr_orders -- Get current order data (Q3)
+		ON products.product_id = curr_orders.product_id
+	JOIN ic_departments AS department
+		ON products.department_id = department.department_id
+	JOIN ic_aisles AS aisles
+		ON products.aisle_id = aisles.aisle_id
+	GROUP BY
+		products.product_id,
+		products.product_name,
+		products.aisle_id,
+		products.department_id,
+		department.department,
+		aisles.aisle
+	HAVING
+		SUM(CASE WHEN prior_orders.reordered THEN 1 ELSE 0 END) < 10 -- Filter on products previously reordered less than 10 times 
+		AND SUM(CASE WHEN curr_orders.reordered THEN 1 ELSE 0 END) >= 10 -- Filter on products currently reordered more than 10 times 
+	ORDER BY
+		current_reorders DESC
+)
+
+SELECT aisle,
+COUNT(*) AS num_products
+FROM increased_reorders
+GROUP BY aisle
+ORDER BY num_products DESC
+LIMIT 10;
+
+| "aisle"                                              | "num_products" |
+|------------------------------------------------------|----------------|
+| "ice cream ice                                     " | 13             |
+| "packaged cheese                                   " | 11             |
+| "fresh vegetables                                  " | 10             |
+| "yogurt                                            " | 10             |
+| "frozen meals                                      " | 9              |
+| "dry pasta                                         " | 9              |
+| "chips pretzels                                    " | 8              |
+| "refrigerated                                      " | 8              |
+| "paper goods                                       " | 7              |
+| "packaged vegetables fruits                        " | 7              |
